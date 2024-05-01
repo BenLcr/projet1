@@ -37,10 +37,6 @@ for elt in df:
 
 pd.plotting.scatter_matrix(X1.iloc[:, 4:], c=X1['Class'])
 plt.title("scatter matrix")
-plt.figure(figsize=(8, 6))
-correlation_matrix = X1.iloc[:, 4:].corr()
-plt.figure()
-sns.heatmap(correlation_matrix, annot=True, vmin=-1, vmax=1, center=0, cmap='coolwarm')
 
 #%% ACP
 X1_clean = X1.iloc[:,4:]
@@ -81,43 +77,35 @@ plt.title('LDA')
 plt.legend(*scatter.legend_elements())
 
 #%% Cercle de correlation
-# corvar = np.zeros((X1_clean.shape[1], 2))
+corvar = np.zeros((X1_clean.shape[1], 2))
 
-# for i in range(X1_clean.shape[1]):
-#     corvar[i, 0] = np.corrcoef(X1_clean.iloc[:, i], X1_adl[:, 0])[0, 1]
+for i in range(X1_clean.shape[1]):
+    corvar[i, 0] = np.corrcoef(X1_clean.iloc[:, i], X1_acp[:, 0])[0, 1]
+    corvar[i, 1] = np.corrcoef(X1_clean.iloc[:, i], X1_acp[:, 1])[0, 1]
 
-# # Affichage des étiquettes (noms des variables)
-# for j in range(X1_clean.shape[1] - 1):
-#     plt.annotate(X1_clean.columns[j], (corvar[j, 0], corvar[j, 1]))
+# Affichage des étiquettes (noms des variables)
+for j in range(X1_clean.shape[1] - 1):
+    plt.annotate(X1_clean.columns[j], (corvar[j, 0], corvar[j, 1]))
 
-# corvar = np.zeros((X1_clean.shape[1] - 2, 2))
+fig, axes = plt.subplots(figsize=(8, 8))
+axes.set_xlim(-1, 1)
+axes.set_ylim(-1, 1)
 
-# for i in range(2, X1_clean.shape[1] - 2):
-#     corvar[i-2, 0] = np.corrcoef(X1_clean.iloc[:, i], X1_adl[:, 0])[0, 1]
+#rand2 = np.random.rand(X1_clean.shape[1] - 2)
+plt.scatter(corvar[:, 0], corvar[:, 1])
 
-# fig, axes = plt.subplots(figsize=(8, 8))
-# axes.set_xlim(-1, 1)
-# axes.set_ylim(-1, 1)
+# Ajout des axes
+plt.plot([-1, 1], [0, 0], color='silver', linestyle='-', linewidth=1)
+plt.plot([0, 0], [-1, 1], color='silver', linestyle='-', linewidth=1)
 
-# rand2 = np.random.rand(X1_clean.shape[1] - 2)
-# plt.scatter(corvar[:, 0], rand2)
+# Ajout d'un cercle
+cercle = plt.Circle((0, 0), 1, color='blue', fill=False)
+axes.add_artist(cercle)
 
-# # Affichage des étiquettes (noms des variables)
-# for j in range(2, X1_clean.shape[1] - 2):
-#     plt.annotate(X1_clean.columns[j], (corvar[j, 0], rand2[j-2]))
-
-# # Ajout des axes
-# plt.plot([-1, 1], [0, 0], color='silver', linestyle='-', linewidth=1)
-# plt.plot([0, 0], [-1, 1], color='silver', linestyle='-', linewidth=1)
-
-# # Ajout d'un cercle
-# cercle = plt.Circle((0, 0), 1, color='blue', fill=False)
-# axes.add_artist(cercle)
-
-# # Affichage du cercle de corrélation
-# plt.title('Cercle de corrélation')
-# plt.axis('equal')  # Pour que les axes aient la même échelle
-# plt.figure()
+# Affichage du cercle de corrélation
+plt.title('Cercle de corrélation')
+plt.axis('equal')  # Pour que les axes aient la même échelle
+plt.figure()
 
 # %%
 #Projection et comparasion pour trier les inconnus
@@ -144,7 +132,7 @@ disp = ConfusionMatrixDisplay(cm)
 disp.plot(cmap='hot')
 
 #%% Courbes ROC
-
+'''
 plt.figure()
 for i in range(0, X2_clean.shape[1]-1):
     fpr, tpr, thresholds = roc_curve(X2_clean, X2_clean[:,i], pos_label=1)
@@ -163,4 +151,5 @@ plt.title('Courbe ROC')
 plt.plot([0, 1], [0, 1], color='b', lw=2, linestyle='--', label='Pire cas')
 plt.legend()
 
+'''
 plt.show()
