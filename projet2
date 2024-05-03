@@ -1,0 +1,90 @@
+from sklearn.datasets import load_iris
+from sklearn import tree
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from ucimlrepo import fetch_ucirepo 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+"""iris = load_iris()
+X, Y = iris.data, iris.target
+
+clf = tree.DecisionTreeClassifier(max_depth=4) #, min_samples_leaf=40
+clf = clf.fit(X, Y)
+
+plt.figure(figsize=(12, 10))
+tree.plot_tree(clf)"""
+  
+# fetch dataset 
+heart_disease = fetch_ucirepo(id=45) 
+  
+# data (as pandas dataframes) 
+X = heart_disease.data.features 
+y = heart_disease.data.targets 
+  
+# variable information 
+print(heart_disease.variables) 
+
+Xdf = pd.read_csv('dataset.csv')
+y = Xdf['target']
+
+Xdf = Xdf.dropna()
+
+#%% Analyse univariée des variables
+Xdf.boxplot(by='target')
+Xdf.groupby('target').mean()
+
+#%% Analyse bivariée des variables
+pd.plotting.scatter_matrix(Xdf.iloc[:,:13])
+
+#%% Analyse multivariée 
+adl = LinearDiscriminantAnalysis()
+Xadl = adl.fit_transform(Xdf.iloc[:,:13], Xdf['target'])
+
+#%%  
+plt.bar(np.arange(1, len(adl.explained_variance_ratio_)+1), adl.explained_variance_ratio_)
+plt.plot(np.arange(1, len(adl.explained_variance_ratio_)+1), np.cumsum(adl.explained_variance_ratio_), color='r')
+plt.ylabel("Variance expliquée en ratio et cumul")
+plt.xlabel("Nombre de facteurs")
+plt.show()
+
+#%% 
+scatter = plt.scatter(Xadl[:, 0], Xadl[:, 1], c=Xdf['target'])
+plt.xlabel('Composante discriminante 1')
+plt.ylabel('Composante discriminante 2')
+plt.title('LDA of IRIS dataset')
+plt.legend(*scatter.legend_elements())
+plt.show()
+
+corvar = np.zeros((Xdf.shape[1] - 1, 2))
+for i in range(Xdf.shape[1] - 1):
+    corvar[i, 0] = np.corrcoef(Xadl[:, 0], Xdf.iloc[:, i])[0, 1]
+    corvar[i, 1] = np.corrcoef(Xadl[:, 1], Xdf.iloc[:, i])[1, 0]
+
+fig, axes = plt.subplots(figsize=(8, 8))
+axes.set_xlim(-1, 1)
+axes.set_ylim(-1, 1)
+plt.scatter(corvar[:, 0], corvar[:, 1])
+
+# Affichage des étiquettes (noms des variables)
+for j in range(Xdf.shape[1] - 1):
+    plt.annotate(Xdf.columns[j], (corvar[j, 0], corvar[j, 1]))
+
+# Ajout des axes
+plt.plot([-1, 1], [0, 0], color='silver', linestyle='-', linewidth=1)
+plt.plot([0, 0], [-1, 1], color='silver', linestyle='-', linewidth=1)
+
+# Ajout d'un cercle
+cercle = plt.Circle((0, 0), 1, color='blue', fill=False)
+axes.add_artist(cercle)
+
+x_train, x_test, y_train, y_test = train_test_split(Xdf.iloc[:, :13], Xdf['target'], random_state=0)
+clf = tree.DecisionTreeClassifier(max_depth=4)
+clf = clf.fit(Xdf, Xdf['target'])
+
+y_pred = clf.predict(x_test)
+
+CM_CLF = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(CM_CLF)
+disp.plot(cmap='hot')
