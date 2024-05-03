@@ -7,6 +7,17 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, ConfusionMatrixDisplay
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import LinearSVC
+
+def accuracy_cm(confusion_matrix):
+    correct_predictions = np.diag(confusion_matrix).sum()
+    total_predictions = confusion_matrix.sum()
+    accuracy = correct_predictions / total_predictions
+    return accuracy
 
 #%%
 data = scipy.io.loadmat('data.mat') 
@@ -52,7 +63,6 @@ plt.bar(np.arange(1, len(acp.explained_variance_ratio_)+1), acp.explained_varian
 plt.plot(np.arange(1, len(acp.explained_variance_ratio_)+1), np.cumsum(acp.explained_variance_ratio_), color='r')
 plt.ylabel("Variance expliquée en ratio et cumul")
 plt.xlabel("Nombre de facteurs")
-plt.show()
 
 #%% Affichage des données selon les différentes composantes
 plt.figure(figsize=(8, 6))
@@ -83,6 +93,8 @@ for i in range(X1_clean.shape[1]):
     corvar[i, 0] = np.corrcoef(X1_clean.iloc[:, i], X1_acp[:, 0])[0, 1]
     corvar[i, 1] = np.corrcoef(X1_clean.iloc[:, i], X1_acp[:, 1])[0, 1]
 
+plt.figure()
+
 # Affichage des étiquettes (noms des variables)
 for j in range(X1_clean.shape[1] - 1):
     plt.annotate(X1_clean.columns[j], (corvar[j, 0], corvar[j, 1]))
@@ -105,71 +117,63 @@ axes.add_artist(cercle)
 # Affichage du cercle de corrélation
 plt.title('Cercle de corrélation')
 plt.axis('equal')  # Pour que les axes aient la même échelle
+
 plt.figure()
 
 # %%
 #Projection et comparasion pour trier les inconnus
 #Inconnu = X2_clean
 
+
+#Predict avec ADL
 X2_clean = X2.iloc[:,4:]
 X2_adl = adl.transform(X2_clean)
 rand = np.random.randn(int(np.shape(X2_adl)[0]))
 
 X2_pred = adl.predict(X2_clean) #Predict class labels for samples in X
-print(X2_pred)
 
-plt.figure()
-plt.scatter(X2_adl[:, 0], X2.iloc[:,1], label='Classe réelle')
-plt.scatter(X2_adl[:, 0], X2.iloc[:,1:]['Class'], marker='*', label='Classe prédite')
-plt.xlabel('Composante discriminante 1')
-plt.ylabel('rand')
-plt.legend()
-plt.title('Projection des données inconnues')
-
-# Matrice de confusion
 cm = confusion_matrix(X2["Class"], X2_pred)
 disp = ConfusionMatrixDisplay(cm)
+print("accuracy adl", accuracy_cm(cm))
 disp.plot(cmap='hot')
 
-#%% Courbes ROC
-'''
-plt.figure()
-for i in range(0, X2_clean.shape[1]-1):
-    fpr, tpr, thresholds = roc_curve(X2_clean, X2_clean[:,i], pos_label=1)
-    #Redressement de la courbe
-    auc = roc_auc_score(X2_clean, X2_clean[:,i])
-    if auc < 0.5 :
-        plt.plot(fpr, tpr, label=X2_clean.columns[i])
-    else :
-        fpr, tpr, thresholds = roc_curve(X2_clean, -X2_clean[:,i], pos_label=1)
-        plt.plot(fpr, tpr, label=data.columns[i])
+#Predict avec methode knvoisins
+x = X1.iloc[:, 4:]
+y = X1['Class']
+#x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=0)
 
-# Plot Xadl et ROC
-plt.xlabel('Taux de Faux Negatif')
-plt.ylabel('Taux de Vrai Positif')
-plt.title('Courbe ROC')
-plt.plot([0, 1], [0, 1], color='b', lw=2, linestyle='--', label='Pire cas')
-plt.legend()
+x_train = X1.iloc[:, 4:]
+x_test = X2.iloc[:, 4:]
+y_train = X1['Class']
+y_test = X2['Class']
 
-'''
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
+tab_accuracy = []
+confidence_intervals = []
 
-X = pd.concat([X1, X2, X3])
-x = X.iloc[:, 4:]
-y = X['Class']
-x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=0)
+for i in range(1, 16):
+    knn = KNeighborsClassifier(n_neighbors=i)
+    knn.fit(x_train, y_train)
+    y_pred = knn.predict(x_test)
+    cm = confusion_matrix(y_test, y_pred)
+    accuracy = accuracy_cm(cm)
+    tab_accuracy.append(accuracy)
+    n = len(y_test)
+    p = accuracy
 
-#instanciation et définition du k
-knn = KNeighborsClassifier(n_neighbors = 3)
-#training
-knn.fit(x_train,y_train)
+plt.figure(figsize=(8, 6))
+#plt.errorbar([i for i in range(1, 16)], tab_accuracy, yerr=np.transpose(confidence_intervals), fmt='-o')
+plt.xlabel("k")
+plt.ylabel("Accuracy")
+plt.title("Accuracy du modèle en fonction de la valeur de k avec intervalle de confiance")
+plt.grid(True)
+plt.show()
+
+#disp = ConfusionMatrixDisplay(cm)
+#disp.plot(cmap='hot')
+
 #Precision
-precision = knn.score(x_test, y_test)
-print("Précision du classificateur kvoisins :", precision)
+#precision = knn.score(x_test, y_test)
+#print("Précision du classificateur kvoisins :", precision)
 
 # Instanciation et définition du classificateur linéaire
 # linear_svc = LinearSVC()
@@ -203,3 +207,4 @@ print("Précision du classificateur bayésien naïf :", precision_naive_bayes)
 
 
 plt.show() 
+
