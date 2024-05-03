@@ -14,6 +14,14 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
+# classifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+from sklearn.naive_bayes import GaussianNB
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+
 #%%
 data = scipy.io.loadmat('data.mat') 
 
@@ -30,7 +38,11 @@ print (f"Nombre de pulses dans le jeu de données 2 : {len(X2[X2['Class'] == 1])
 print (f"Nombre de pulses dans le jeu de données 3 : {len(X3[X3['Class'] == 1])}")
 
 X1_clean = X1.iloc[:,4:]
-y = X1['Class']
+X2_clean = X2.iloc[:,4:]
+X3_clean = X3.iloc[:,4:]
+y1 = X1['Class']
+y2 = X2['Class']
+y3 = X3['Class']
 
 # Corrélation
 correlation_matrix = X1_clean.corr()
@@ -56,7 +68,7 @@ plt.show()
 
 # Les individus projetés dans l'espace des 2 axes principaux
 acp_df = pd.DataFrame(data=X1acp, columns=['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6'])
-acp_df['Class'] = y.values
+acp_df['Class'] = y1.values
 
 #%% Affichage des données selon les différentes composantes
 colors = {1: 'red', 2: 'blue'}
@@ -94,3 +106,64 @@ axes.add_artist(cercle)
 
 plt.title("Cercle des corrélations")
 plt.show()
+
+#%% Fusion des enregistrements pour les classifiers
+x_frames = [X1_clean, X2_clean, X3_clean]
+x = pd.concat(x_frames)
+
+y_frames = [y1, y2, y3]
+y = pd.concat(y_frames)
+
+#%% ADL
+adl = LinearDiscriminantAnalysis()
+x_adl = adl.fit_transform(x, y)
+rand = np.random.randn(int(np.shape(x_adl)[0]))
+
+plt.figure()
+scatter = plt.scatter(x_adl[:, 0], rand, c=y)
+plt.xlabel('Composante discriminante 1')
+plt.ylabel('Composante discriminante 2')
+plt.title('LDA')
+plt.legend(*scatter.legend_elements())
+
+
+# Utiliser tous les classifiers sur la meme base de test (train_test_split)
+
+# si il y a un gros ecart entre les classes (en nb), effectuer une matrisse de perf normalisée (balenced accuracy)
+# il vaut mieux ajouter l'intervalle de confiance (intervalle de confiance à 95%, f-1.96*...)
+# ou faire la moyenne et variablilité sur plusieurs split
+
+
+# pour les classifiers de Bayes, on apprend le centre de gravité (mu) et matrisse de variances covariances
+#%% Gaussian Naive Bayes
+
+#fractionner dataset (train-test)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size = 0.20)
+# corss_val => utilise plusieurs paquets pour faire plusieurs matrices de confusion puis score
+#instanciation
+model_Gaussian = GaussianNB()
+#training
+model_Gaussian.fit(x_train, y_train)
+#prédiction
+prediction = model_Gaussian.predict(x_test)
+print(prediction)
+#evaluation du modèle
+precision = accuracy_score(y_test, prediction)*100
+print(precision)
+
+#%% Discriminant linéaire
+
+# X contient les données avec en ligne les individus et en colonne les caractéristiques et y les # classes des individus 
+#X_r2 = lda.fit(X, y).transform(X) 
+#print(adl.explained_variance_ratio_) 
+
+#%% Discriminant quadratique
+
+
+
+# Pour PPV
+# en mémoire, on doit stocker la base d'apprentissage -> très lourd pour la machine
+
+# la validation de doit pas venur du testing
+# dans validation, tracer accuracy par k. Choisir k entre 1 et 30 (pas plus)
+# afficher la l'IC pour l'accuracy en validation
