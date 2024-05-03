@@ -152,4 +152,54 @@ plt.plot([0, 1], [0, 1], color='b', lw=2, linestyle='--', label='Pire cas')
 plt.legend()
 
 '''
-plt.show()
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import LinearSVC
+
+X = pd.concat([X1, X2, X3])
+x = X.iloc[:, 4:]
+y = X['Class']
+x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=0)
+
+#instanciation et définition du k
+knn = KNeighborsClassifier(n_neighbors = 3)
+#training
+knn.fit(x_train,y_train)
+#Precision
+precision = knn.score(x_test, y_test)
+print("Précision du classificateur kvoisins :", precision)
+
+# Instanciation et définition du classificateur linéaire
+# linear_svc = LinearSVC()
+
+# # Entraînement du modèle
+# linear_svc.fit(x_train, y_train)
+
+# # Précision du modèle sur l'ensemble de test
+# precision = linear_svc.score(x_test, y_test)
+# print("Précision du classificateur linéaire :", precision)
+
+# Instanciation et définition du classificateur quadratique
+quadratic_classifier = QuadraticDiscriminantAnalysis()
+
+#training
+quadratic_classifier.fit(x_train, y_train)
+
+#Precision
+precision_quadratic = quadratic_classifier.score(x_test, y_test)
+print("Précision du classificateur quadratique :", precision_quadratic)
+
+#Instanciation et définition du classificateur bayésien naïf
+naive_bayes_classifier = GaussianNB()
+
+#training
+naive_bayes_classifier.fit(x_train, y_train)
+
+#Precision
+precision_naive_bayes = naive_bayes_classifier.score(x_test, y_test)
+print("Précision du classificateur bayésien naïf :", precision_naive_bayes)
+
+
+plt.show() 
