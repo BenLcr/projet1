@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import seaborn as sns
 
@@ -34,6 +34,11 @@ plt.show()
 adl = LinearDiscriminantAnalysis()
 Xadl = adl.fit_transform(x, y)
 
+rand = np.random.randn(int(np.shape(Xadl)[0]))
+plt.scatter(Xadl, rand, c=y)
+plt.title("ADL")
+plt.show()
+
 # Séparation des données
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
@@ -49,7 +54,75 @@ plt.show()
 
 # Entraînement d'un arbre de décision sur le dataset
 clf = tree.DecisionTreeClassifier()
+
+# Test des meilleurs paramètres 
+param_grid = {
+    'criterion': ['gini', 'entropy'],
+    'ccp_alpha': np.logspace(-4, 0, 50)
+}
+grid_search = GridSearchCV(estimator=clf, param_grid=param_grid, cv=5, scoring='accuracy')
+
+# Entraînement de GridSearchCV
+grid_search.fit(x_train, y_train)
+
+# Affichage des meilleurs paramètres
+print(f"Meilleurs paramètres: {grid_search.best_params_}")
+
+# Liste des valeurs de ccp_alpha à tester
+ccp_alphas = np.logspace(-3, 0, 100)
+
+# Stockage des résultats
+train_scores = []
+test_scores = []
+
+for ccp_alpha in ccp_alphas:
+    clf = tree.DecisionTreeClassifier(ccp_alpha=ccp_alpha, criterion='gini', random_state=0)
+    clf.fit(x_train, y_train)
+    train_scores.append(clf.score(x_train, y_train))
+    test_scores.append(clf.score(x_test, y_test))
+
+# Visualisation des scores
+plt.figure(figsize=(10, 6))
+plt.plot(ccp_alphas, train_scores, label='Train Accuracy', marker='o')
+plt.plot(ccp_alphas, test_scores, label='Test Accuracy', marker='o')
+plt.xscale('log')
+plt.xlabel('ccp_alpha')
+plt.ylabel('Accuracy')
+plt.title('Accuracy vs ccp_alpha, criterion=gini')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+train_scores = []
+test_scores = []
+
+for ccp_alpha in ccp_alphas:
+    clf = tree.DecisionTreeClassifier(ccp_alpha=ccp_alpha, criterion='entropy', random_state=0)
+    clf.fit(x_train, y_train)
+    train_scores.append(clf.score(x_train, y_train))
+    test_scores.append(clf.score(x_test, y_test))
+
+# Visualisation des scores
+plt.figure(figsize=(10, 6))
+plt.plot(ccp_alphas, train_scores, label='Train Accuracy', marker='o')
+plt.plot(ccp_alphas, test_scores, label='Test Accuracy', marker='o')
+plt.xscale('log')
+plt.xlabel('ccp_alpha')
+plt.ylabel('Accuracy')
+plt.title('Accuracy vs ccp_alpha, criterion=entropy')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Utilisation des meilleurs paramètres
+clf = tree.DecisionTreeClassifier(ccp_alpha=0.016, criterion='gini')
 clf = clf.fit(x, y)
+
+importances = clf.feature_importances_
+print("Importances des caractéristiques :", importances)
+
+tree_depth = clf.get_depth()
+print("Profondeur de l'arbre :", tree_depth)
 
 # Prédiction avec l'arbre de décision
 y_pred = clf.predict(x_test)
