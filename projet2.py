@@ -8,6 +8,12 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import seaborn as sns
 
+def accuracy_cm(confusion_matrix):
+    correct_predictions = np.diag(confusion_matrix).sum()
+    total_predictions = confusion_matrix.sum()
+    accuracy = correct_predictions / total_predictions
+    return accuracy
+
 # Chargement et préparation des données
 Xdf = pd.read_csv('dataset.csv')
 x = Xdf.iloc[:, :12]
@@ -51,6 +57,7 @@ disp = ConfusionMatrixDisplay(CM_ADL)
 disp.plot(cmap='hot')
 plt.title("Matrice de confusion - Analyse Discriminante Linéaire")
 plt.show()
+print("accuracy CM_ADL", accuracy_cm(CM_ADL))
 
 # Entraînement d'un arbre de décision sur le dataset
 clf = tree.DecisionTreeClassifier()
@@ -115,11 +122,20 @@ plt.grid(True)
 plt.show()
 
 # Utilisation des meilleurs paramètres
-clf = tree.DecisionTreeClassifier(ccp_alpha=0.016, criterion='gini')
+clf = tree.DecisionTreeClassifier(ccp_alpha=0.00, criterion='gini')
 clf = clf.fit(x, y)
 
 importances = clf.feature_importances_
 print("Importances des caractéristiques :", importances)
+
+feature_names = x.columns
+forest_importances = pd.Series(importances, index=feature_names)
+
+fig, ax = plt.subplots()
+forest_importances.plot.bar(ax=ax)
+ax.set_title("Feature importances")
+ax.set_ylabel("Diminution moyenne des impuretés")
+fig.tight_layout()
 
 tree_depth = clf.get_depth()
 print("Profondeur de l'arbre :", tree_depth)
@@ -133,6 +149,7 @@ disp = ConfusionMatrixDisplay(CM_CLF)
 disp.plot(cmap='hot')
 plt.title("Matrice de confusion - Arbre de Décision")
 plt.show()
+print("accuracy CM_CLF", accuracy_cm(CM_CLF))
 
 # Affichage de l'arbre de décision
 plt.figure(figsize=(12, 10))
