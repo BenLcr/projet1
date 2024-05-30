@@ -15,27 +15,29 @@ from sklearn.exceptions import ConvergenceWarning
 import warnings as w
 w.simplefilter("ignore", category=ConvergenceWarning)
 
+# Fonction pour tracer les résultats de la recherche en grille avec des barres d'erreur
 def plot_grid_search(cv_results, grid_param_1, grid_param_2, name_param_1, name_param_2):
     # Get Test Scores Mean and std for each grid search
     scores_mean = cv_results['mean_test_score']
-    scores_mean = np.array(scores_mean).reshape(len(grid_param_2),len(grid_param_1))
+    scores_mean = np.array(scores_mean).reshape(len(grid_param_2), len(grid_param_1))
 
     scores_sd = cv_results['std_test_score']
-    scores_sd = np.array(scores_sd).reshape(len(grid_param_2),len(grid_param_1))
+    scores_sd = np.array(scores_sd).reshape(len(grid_param_2), len(grid_param_1))
 
     # Plot Grid search scores
-    _, ax = plt.subplots(1,1)
+    _, ax = plt.subplots(1, 1)
 
-    # Param1 is the X-axis, Param 2 is represented as a different curve (color line)
+    # Param1 is the X-axis, Param 2 is represented as a different scatter plot (color points)
     for idx, val in enumerate(grid_param_2):
-        ax.plot(grid_param_1, scores_mean[idx,:], '-o', label= name_param_2 + ': ' + str(val))
+        ax.errorbar(grid_param_1, scores_mean[idx, :], yerr=scores_sd[idx, :], fmt='o', label=name_param_2 + ': ' + str(val), capsize=5)
 
     plt.tight_layout()
     ax.set_title("Grid Search Scores", fontsize=20, fontweight='bold')
     ax.set_xlabel(name_param_1, fontsize=16)
     ax.set_ylabel('CV Average Score', fontsize=16)
-    ax.legend(loc="best", fontsize=15)
-    ax.grid('on')
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=5)
+    ax.grid(True)
+    plt.show()
 
 def accuracy_cm(confusion_matrix):
     correct_predictions = np.diag(confusion_matrix).sum()
@@ -44,7 +46,7 @@ def accuracy_cm(confusion_matrix):
     return accuracy
 
 # Chargement et prÃ©paration des donnÃ©es
-Xdf = pd.read_csv('C:/Users/lacou/Desktop/traitement donnÃ©e/Seance-6-SVM-et-MLP/database.csv')
+Xdf = pd.read_csv('database.csv')
 missing_values = Xdf.isnull().sum()
 print(f"Nombre de donnÃ©es manquantes : {missing_values.sum()}")
 
@@ -93,35 +95,35 @@ plt.show()
 print("accuracy CM_ADL", accuracy_cm(CM_ADL))
 
 # Training MLP
-#nb_neurones = [n for n in range(1, 21, 2)]
-#print(nb_neurones)
-#alpha = np.linspace(0.00001, 0.01, 10)
-#tab_accuracy = np.zeros((len(alpha), len(nb_neurones)))
-#print(tab_accuracy)
-#
-##for i in range(0, len(alpha) - 1):
-##    for j in range(0, len(nb_neurones) - 1):
-##        clf_MLP = MLPClassifier(random_state=0, hidden_layer_sizes=(int(nb_neurones[i]),), alpha=alpha[j], max_iter=300).fit(x_train2, y_train2)
-##        tab_accuracy[i][j] = clf_MLP.score(x_validation, y_validation)
-#
-## On va faire intervalle de confiance = moyenne des accuracy - val max/val min 
-#
+# nb_neurones = [n for n in range(1, 18, 4)]
+# print(nb_neurones)
+# alpha = np.linspace(0.00001, 0.01, 10)
+# tab_accuracy = np.zeros((len(alpha), len(nb_neurones)))
+# print(tab_accuracy)
+
+#for i in range(0, len(alpha) - 1):
+#    for j in range(0, len(nb_neurones) - 1):
+#        clf_MLP = MLPClassifier(random_state=0, hidden_layer_sizes=(int(nb_neurones[i]),), alpha=alpha[j], max_iter=300).fit(x_train2, y_train2)
+#        tab_accuracy[i][j] = clf_MLP.score(x_validation, y_validation)
+
+# On va faire intervalle de confiance = moyenne des accuracy - val max/val min 
+
 clf_MLP = MLPClassifier(random_state=0, max_iter=300)
 
 # DÃ©finir la grille des hyperparamÃ¨tres Ã  tester
 param_grid = {
-    'hidden_layer_sizes': [(n,) for n in range(1, 14, 1)],  # De 1 Ã  21 neurones dans une seule couche
-    'alpha': np.linspace(0.00001, 0.001, 10)  # 100 valeurs de alpha entre 0.00001 et 0.001
+    'hidden_layer_sizes': [(n,) for n in range(1, 20, 2)],  # De 1 a 2 neurones dans une seule couche
+    'alpha': np.linspace(1e-5, 0.1, 30)  # 10 valeurs de alpha entre 0.00001 et 0.001
 }
 
 grid_search = GridSearchCV(estimator=clf_MLP, param_grid=param_grid, cv=5, scoring='accuracy')
 grid_search.fit(x_train2, y_train2)
 
 # Afficher les meilleurs paramÃ¨tres
-print(f"Meilleurs paramÃ¨tres: {grid_search.best_params_}")
-plot_grid_search(grid_search.cv_results_, grid_search.best_params_['alpha'], grid_search.best_params_["hidden_layer_sizes"], 'alpha', 'hidden_layer_sizes')
+print(f"Meilleurs parametres: {grid_search.best_params_}")
+plot_grid_search(grid_search.cv_results_, param_grid['alpha'], param_grid["hidden_layer_sizes"], 'alpha', 'hidden_layer_sizes')
 
-clf_MLP = MLPClassifier(random_state=0, hidden_layer_sizes=(11,), alpha=0.00012, max_iter=300).fit(x_train, y_train)
+clf_MLP = MLPClassifier(random_state=0, hidden_layer_sizes=grid_search.best_params_["hidden_layer_sizes"], alpha=grid_search.best_params_["alpha"], max_iter=300).fit(x_train, y_train)
 
 # PrÃ©diction avec MLP
 y_pred = clf_MLP.predict(x_test)
@@ -141,7 +143,7 @@ clf_SVM = make_pipeline(StandardScaler(), SVC())
 # DÃ©finir la grille des hyperparamÃ¨tres Ã  tester
 param_grid = {
     'svc__kernel': ['linear', 'poly', 'rbf', 'sigmoid'],  # DiffÃ©rents noyaux Ã  tester
-    'svc__C': np.linspace(0.001, 10.0, 10)  # DiffÃ©rentes valeurs de C Ã  tester
+    'svc__C': np.linspace(0.001, 100.0, 30)  # DiffÃ©rentes valeurs de C Ã  tester
 }
 
 grid_search = GridSearchCV(estimator=clf_SVM, param_grid=param_grid, cv=5, scoring='accuracy')
@@ -151,8 +153,8 @@ grid_search.fit(x_train2, y_train2)
 print(f"Meilleurs paramÃ¨tres: {grid_search.best_params_}")
 plot_grid_search(grid_search.cv_results_, param_grid['svc__C'], param_grid["svc__kernel"], 'C', 'Kernel')
 
-C = 1.0
-kernel = 'linear' #{'linear', 'poly', 'rbf', 'sigmoid'}
+C = grid_search.best_params_['svc__C']
+kernel = grid_search.best_params_["svc__kernel"] #{'linear', 'poly', 'rbf', 'sigmoid'}
 clf_SVM = make_pipeline(StandardScaler(), SVC(C=C, kernel=kernel))
 clf_SVM.fit(x_train, y_train)
 
